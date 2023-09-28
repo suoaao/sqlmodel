@@ -68,21 +68,18 @@ if __name__ == "__main__":
         commit = last_commit.commit.sha
         logging.info(f"Last commit: {commit}")
         message = get_message(commit)
-        notified = False
-        for pr_comment in pr_comments:
-            if message in pr_comment.body:
-                notified = True
+        notified = any(message in pr_comment.body for pr_comment in pr_comments)
         logging.info(f"Docs preview was notified: {notified}")
         if not notified:
             artifact_name = f"docs-zip-{commit}"
-            use_artifact: Optional[Artifact] = None
-            for artifact in artifacts_response.artifacts:
-                if artifact.name == artifact_name:
-                    use_artifact = artifact
-                    break
-            if not use_artifact:
-                logging.info("Artifact not available")
-            else:
+            if use_artifact := next(
+                (
+                    artifact
+                    for artifact in artifacts_response.artifacts
+                    if artifact.name == artifact_name
+                ),
+                None,
+            ):
                 logging.info(f"Existing artifact: {use_artifact.name}")
                 response = httpx.post(
                     f"{github_api}/repos/{settings.github_repository}/actions/workflows/preview-docs.yml/dispatches",
@@ -99,4 +96,6 @@ if __name__ == "__main__":
                 logging.info(
                     f"Trigger sent, response status: {response.status_code} - content: {response.content}"
                 )
+            else:
+                logging.info("Artifact not available")
     logging.info("Finished")

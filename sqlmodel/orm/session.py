@@ -66,9 +66,7 @@ class Session(_Session):
             _add_event=_add_event,
             **kw,
         )
-        if isinstance(statement, SelectOfScalar):
-            return results.scalars()  # type: ignore
-        return results  # type: ignore
+        return results.scalars() if isinstance(statement, SelectOfScalar) else results
 
     def execute(
         self,
